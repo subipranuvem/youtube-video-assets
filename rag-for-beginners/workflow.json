@@ -1,0 +1,424 @@
+{
+    "name": "Demo: RAG",
+    "nodes": [
+        {
+            "parameters": {
+                "formTitle": "Suba seu PDF para vetorizar",
+                "formFields": {
+                    "values": [
+                        {
+                            "fieldLabel": "file_uploaded",
+                            "fieldType": "file",
+                            "acceptFileTypes": ".pdf",
+                            "requiredField": true
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.formTrigger",
+            "typeVersion": 2.2,
+            "position": [128, 608],
+            "id": "ee790ccb-cc61-419d-a238-401f820489a8",
+            "name": "Upload your file here",
+            "webhookId": "488809af-6271-46dc-bb8a-95c1bf2e1d94"
+        },
+        {
+            "parameters": {
+                "content": "### 🐕 3. Agente de conversação com RAG",
+                "height": 460,
+                "width": 792,
+                "color": 7
+            },
+            "type": "n8n-nodes-base.stickyNote",
+            "position": [736, 544],
+            "typeVersion": 1,
+            "id": "d39eaf7e-57df-4387-bec8-9447162195d0",
+            "name": "Sticky Note2"
+        },
+        {
+            "parameters": {
+                "content": "### Embeddings\n\nOs embeddings devem usar o mesmo node, ou usar a mesma configuração.\n\nIsso garante que os modelos vão mapear as informações no mesmo local no espaço vetorial.\n\nUsar modelos diferentes tem altas chances de trazer informações incorretas.",
+                "height": 240,
+                "width": 336,
+                "color": 7
+            },
+            "type": "n8n-nodes-base.stickyNote",
+            "position": [400, 1008],
+            "typeVersion": 1,
+            "id": "d5dde132-98f6-4e36-8a9b-b669af8fb936",
+            "name": "Sticky Note3"
+        },
+        {
+            "parameters": {
+                "model": "qwen3-embedding:0.6b"
+            },
+            "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+            "typeVersion": 1,
+            "position": [864, 1088],
+            "id": "6ba804d0-645d-4236-a1f2-af2d9fc8c09b",
+            "name": "Embeddings Ollama",
+            "credentials": {
+                "ollamaApi": {
+                    "id": "NH80R5vrQ2I95i8U",
+                    "name": "Ollama account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "assignments": {
+                    "assignments": [
+                        {
+                            "id": "2bdf13fc-6114-4d3c-bcbb-5b12d02b4a7f",
+                            "name": "table_name",
+                            "value": "=embedding_test",
+                            "type": "string"
+                        },
+                        {
+                            "id": "e5e6dfa0-9330-40ee-9159-a259b2860380",
+                            "name": "db_user",
+                            "value": "=n8n_user",
+                            "type": "string"
+                        },
+                        {
+                            "id": "25c90ece-98b0-438e-9f2b-58ba9eeb63ad",
+                            "name": "embedding_size",
+                            "value": "=1024",
+                            "type": "number"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.4,
+            "position": [-448, 608],
+            "id": "4a4cd0c3-cbf3-4156-8322-1f46f3b7cc4f",
+            "name": "Set DB Config"
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "-- Uncomment this line to drop the table\n-- DROP TABLE IF EXISTS $1:value;\n\nCREATE TABLE IF NOT EXISTS $1:value (\n  id bigserial primary key,\n  content text,\n  metadata jsonb,\n  embedding vector($3),\n  created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP\n);\n\nGRANT SELECT, INSERT, UPDATE, DELETE ON TABLE $1:value TO $2:value;\n\nTRUNCATE TABLE $1:value;\n",
+                "options": {
+                    "queryReplacement": "={{$('Set DB Config').item.json.table_name}},{{$('Set DB Config').item.json.db_user}},{{$('Set DB Config').item.json.embedding_size}}"
+                }
+            },
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.6,
+            "position": [-256, 608],
+            "id": "bd8292d1-7b8c-420e-a6e0-1484e460b6c5",
+            "name": "Creating table",
+            "credentials": {
+                "postgres": {
+                    "id": "pr4O1mRfU5TZTBqw",
+                    "name": "Postgres account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "mode": "insert",
+                "tableName": "={{ $('Set DB Config').params.assignments.assignments[0].value.replace(\"=\", \"\")}}",
+                "options": {
+                    "columnNames": {
+                        "values": {
+                            "contentColumnName": "content"
+                        }
+                    }
+                }
+            },
+            "type": "@n8n/n8n-nodes-langchain.vectorStorePGVector",
+            "typeVersion": 1.3,
+            "position": [368, 608],
+            "id": "d81e4843-61a0-4480-9779-c009667de0bf",
+            "name": "Postgres PGVector Store",
+            "credentials": {
+                "postgres": {
+                    "id": "pr4O1mRfU5TZTBqw",
+                    "name": "Postgres account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "dataType": "binary",
+                "binaryMode": "specificField",
+                "binaryDataKey": "=file_uploaded",
+                "textSplittingMode": "custom",
+                "options": {
+                    "splitPages": true
+                }
+            },
+            "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+            "typeVersion": 1.1,
+            "position": [464, 752],
+            "id": "5171df01-2693-4e9d-a84b-3d144adfeaf5",
+            "name": "Default Data Loader"
+        },
+        {
+            "parameters": {},
+            "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+            "typeVersion": 1.3,
+            "position": [1152, 800],
+            "id": "984028b2-4801-46d6-af80-4ba8e8c13cda",
+            "name": "Simple Memory"
+        },
+        {
+            "parameters": {
+                "mode": "retrieve-as-tool",
+                "toolDescription": "Use essa base de conhecimento para obter informações do tônico capilar careca 0.",
+                "tableName": "={{ $('Set DB Config').params.assignments.assignments[0].value.replace(\"=\", \"\")}}",
+                "includeDocumentMetadata": false,
+                "options": {
+                    "columnNames": {
+                        "values": {
+                            "contentColumnName": "content"
+                        }
+                    }
+                }
+            },
+            "type": "@n8n/n8n-nodes-langchain.vectorStorePGVector",
+            "typeVersion": 1.3,
+            "position": [1280, 800],
+            "id": "5cfb97fc-3841-440d-8ca6-eb119cd6a4be",
+            "name": "Postgres PGVector Tool",
+            "credentials": {
+                "postgres": {
+                    "id": "pr4O1mRfU5TZTBqw",
+                    "name": "Postgres account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "options": {}
+            },
+            "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+            "typeVersion": 1.4,
+            "position": [800, 592],
+            "id": "5e3aef84-3480-4145-8b5d-075c63c82fd4",
+            "name": "When chat message received",
+            "webhookId": "2e9ab417-3e17-46ae-ab3a-d5314d92b7b2"
+        },
+        {
+            "parameters": {
+                "options": {
+                    "systemMessage": "Você é um assistente pessoal.\n\nCaso a pessoa peça informações sobre o Tônico capilar Careca 0, use as ferramentas disponíveis para buscar um conteúdo mais apurado.\n\nForneça respostas mais diretas sem muita enrolação.\nPreste atenção no histórico da conversa para não ficar repetindo informações."
+                }
+            },
+            "type": "@n8n/n8n-nodes-langchain.agent",
+            "typeVersion": 3.1,
+            "position": [1056, 592],
+            "id": "598666c1-3443-4576-bfbb-464d0e2724e3",
+            "name": "AI Agent"
+        },
+        {
+            "parameters": {
+                "content": "### 📚 2. Carregar dados do PDF no banco vetorial",
+                "height": 460,
+                "width": 700,
+                "color": 7
+            },
+            "type": "n8n-nodes-base.stickyNote",
+            "position": [32, 544],
+            "typeVersion": 1,
+            "id": "1a158c39-947b-4bb1-8deb-8055ec3b9ebc",
+            "name": "Sticky Note1"
+        },
+        {
+            "parameters": {
+                "content": "",
+                "height": 240,
+                "width": 336,
+                "color": 7
+            },
+            "type": "n8n-nodes-base.stickyNote",
+            "position": [736, 1008],
+            "typeVersion": 1,
+            "id": "03e1a05d-5a1e-468a-901e-e6ecd53e5742",
+            "name": "Sticky Note"
+        },
+        {
+            "parameters": {
+                "content": "### 📋 1. Criação da tabela de armazenamento",
+                "height": 460,
+                "width": 700,
+                "color": 7
+            },
+            "type": "n8n-nodes-base.stickyNote",
+            "position": [-672, 544],
+            "typeVersion": 1,
+            "id": "22371011-2920-461b-8990-948c36e591f5",
+            "name": "Sticky Note4"
+        },
+        {
+            "parameters": {
+                "chunkSize": 128,
+                "chunkOverlap": 30
+            },
+            "type": "@n8n/n8n-nodes-langchain.textSplitterTokenSplitter",
+            "typeVersion": 1,
+            "position": [464, 912],
+            "id": "f4574ffc-b407-4a9e-aa16-0147b8550c13",
+            "name": "Token Splitter"
+        },
+        {
+            "parameters": {},
+            "id": "76fa472c-5646-4f3d-93e1-b90341b46e4a",
+            "name": "Start workflow",
+            "type": "n8n-nodes-base.manualTrigger",
+            "position": [-624, 608],
+            "typeVersion": 1
+        },
+        {
+            "parameters": {
+                "options": {}
+            },
+            "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+            "typeVersion": 1,
+            "position": [928, 800],
+            "id": "9129086b-a950-42f4-bac4-bd9a48e3345c",
+            "name": "DeepSeek Chat Model",
+            "credentials": {
+                "deepSeekApi": {
+                    "id": "rS77L2Uum7kpKbiF",
+                    "name": "DeepSeek account"
+                }
+            }
+        }
+    ],
+    "pinData": {},
+    "connections": {
+        "Upload your file here": {
+            "main": [
+                [
+                    {
+                        "node": "Postgres PGVector Store",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Embeddings Ollama": {
+            "ai_embedding": [
+                [
+                    {
+                        "node": "Postgres PGVector Store",
+                        "type": "ai_embedding",
+                        "index": 0
+                    },
+                    {
+                        "node": "Postgres PGVector Tool",
+                        "type": "ai_embedding",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Set DB Config": {
+            "main": [
+                [
+                    {
+                        "node": "Creating table",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Default Data Loader": {
+            "ai_document": [
+                [
+                    {
+                        "node": "Postgres PGVector Store",
+                        "type": "ai_document",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Simple Memory": {
+            "ai_memory": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "ai_memory",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Postgres PGVector Tool": {
+            "ai_tool": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "ai_tool",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "When chat message received": {
+            "main": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Token Splitter": {
+            "ai_textSplitter": [
+                [
+                    {
+                        "node": "Default Data Loader",
+                        "type": "ai_textSplitter",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Start workflow": {
+            "main": [
+                [
+                    {
+                        "node": "Set DB Config",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "DeepSeek Chat Model": {
+            "ai_languageModel": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "ai_languageModel",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "active": false,
+    "settings": {
+        "executionOrder": "v1",
+        "binaryMode": "separate",
+        "availableInMCP": false
+    },
+    "versionId": "858f6a85-9236-4d9c-810b-a655bebe1f0d",
+    "meta": {
+        "templateCredsSetupCompleted": true,
+        "instanceId": "d0167775617bdb38ed1c9b45d8d4ec912545f1f28b90fc116fac474f1ce0dc05"
+    },
+    "id": "7FTDwCQMANXlZr9e",
+    "tags": []
+}
+
