@@ -34,10 +34,10 @@ O Claude Desktop precisa executar um binário local — ele não consegue se com
 docker run --rm \
   -v $(pwd):/output \
   go-mcp-anime-quote \
-  cp /app/quote-getter /output/quote-getter
+  cp /app/go-mcp-anime-quote /output/go-mcp-anime-quote
 ```
 
-O binário estará disponível em `./quote-getter`.
+O binário estará disponível em `./go-mcp-anime-quote`.
 
 > **Nota:** o container não consegue executar o binário (ele é macOS rodando em Linux), mas a extração funciona perfeitamente.
 
@@ -64,7 +64,7 @@ Adicione o bloco `mcpServers` apontando para o binário extraído:
 {
   "mcpServers": {
     "anime-quote": {
-      "command": "/caminho-absoluto-para-o-repo/quote-getter"
+      "command": "/caminho-absoluto-para-o-repo/go-mcp-anime-quote"
     }
   }
 }
@@ -79,7 +79,7 @@ pwd
 # exemplo: /Users/seu-usuario/projetos/go-mcp-anime-quote
 ```
 
-O valor do `command` será esse caminho seguido de `/quote-getter`.
+O valor do `command` será esse caminho seguido de `/go-mcp-anime-quote`.
 
 Salve o arquivo e **reinicie o Claude Desktop**. O servidor só é carregado na inicialização.
 
@@ -89,7 +89,7 @@ Salve o arquivo e **reinicie o Claude Desktop**. O servidor só é carregado na 
 sequenceDiagram
     actor Usuário
     participant CD as Claude Desktop
-    participant MCP as MCP Server<br/>(quote-getter)
+    participant MCP as MCP Server<br/>(go-mcp-anime-quote)
 
     Usuário->>CD: "Me diga uma citação do episódio 5, temporada 1"
 

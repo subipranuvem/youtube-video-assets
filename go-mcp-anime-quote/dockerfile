@@ -7,10 +7,10 @@ ARG GOARCH=arm64
 WORKDIR /app
 COPY . .
 RUN go mod download
-RUN CGO_ENABLED=0 GOOS=${GOOS} GOARCH=${GOARCH} go build -o quote-getter main.go
+RUN CGO_ENABLED=0 GOOS=${GOOS} GOARCH=${GOARCH} go build -o go-mcp-anime-quote main.go
 
 # Stage 2: copy only the compiled binary into an empty image to keep it minimal.
 FROM alpine:3.21
 WORKDIR /app
-COPY --from=builder /app/quote-getter .
-CMD ["./quote-getter"]
+COPY --from=builder /app/go-mcp-anime-quote .
+CMD ["./go-mcp-anime-quote"]
